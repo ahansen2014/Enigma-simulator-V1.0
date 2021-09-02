@@ -10,6 +10,12 @@ It cannot decrypt messages encrypted with the four rotor machine used by the Kri
 
 class Rotor:
     def __init__(self, details, ringsetting = 0, indicated = 'A'):
+        """
+        A rotor is defined by its details (sequence and notch position), its ringsetting and its starting position.
+        :param details:
+        :param ringsetting:
+        :param indicated:
+        """
         self.sequence = details[0]
         self.notch = details[1]
         self.ringsetting = ringsetting
@@ -234,5 +240,3 @@ class Machine:
         letter = chr(ETW + 65)
 
         return letter
-
-
