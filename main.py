@@ -44,22 +44,31 @@ def process_inputs(rotor_selection, ring_setting, reflector, plug_pairs, message
 
     return refl, slow, med, fast, plugs
 
-rotor_selection = input('Rotors: S,M,F: (I, II, III, IV, V, VI, VII, VIII): ')
-ring_setting = input('Ring settings: S,M,F: (1 to 26): ')
-reflector = input('Reflector: (A, B, C, Beta, Gamma): ')
-plug_pairs = input('Plug pairs: (AB, CD, etc): ')
-input_text = input('Text: ')
-message_key = input('Message key: (ABC): ')
+def decrypt(text):
+    decrypt = ''
+    for key in input_text:
+        if key != ' ':
+            machine.step()
+            letter = plugs.plug_shuffle(key)
+            returned = machine.encode(letter)
+            bulb = plugs.plug_shuffle(returned)
+            decrypt += bulb
+        else:
+            decrypt += ' '
+    return decrypt
+
+#  The default values provided below are for testing / demonstration purposes.
+#  They refer to the message sent from the Scharnhorst in 1943.  The message and decrypt can be found here:
+#  http://wiki.franklinheath.co.uk/index.php/Enigma/Sample_Messages
+rotor_selection = input('Rotors: S,M,F: (I, II, III, IV, V, VI, VII, VIII): ') or 'III,VI,VIII'
+ring_setting = input('Ring settings: S,M,F: (1 to 26): ') or '1,8,13'
+reflector = input('Reflector: (A, B, C, Beta, Gamma): ') or 'B'
+plug_pairs = input('Plug pairs: (AB, CD, etc): ') or 'AN,EZ,HK,IJ,LR,MQ,OT,PV,SW,UX'
+input_text = input('Text: ') or 'YKAE NZAP MSCH ZBFO CUVM RMDP YCOF HADZ IZME FXTH FLOL PZLF GGBO TGOX GRET DWTJ IQHL MXVJ WKZU ASTR'
+message_key = input('Message key: (ABC): ') or 'UZV'
 
 refl, slow, med, fast, plugs = process_inputs(rotor_selection, ring_setting, reflector, plug_pairs, message_key)
 
 machine = Machine(refl, slow, med, fast, plugs)
 
-decrypt = ''
-for key in input_text:
-    machine.step()
-    letter = plugs.plug_shuffle(key)
-    returned = machine.encode(letter)
-    bulb = plugs.plug_shuffle(returned)
-    decrypt += bulb
-print(decrypt)
+print(decrypt(input_text))
