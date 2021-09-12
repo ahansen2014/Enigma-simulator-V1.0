@@ -8,8 +8,9 @@ It can reliably decrypt messages encrypted with Enigma I and M3.  Both are three
 It cannot decrypt messages encrypted with the four rotor machine used by the Kriegsmarine.
 """
 
+
 class Rotor:
-    def __init__(self, details, ringsetting = 0, indicated = 'A'):
+    def __init__(self, details, ringsetting=0, indicated='A'):
         """
         A rotor is defined by its details (sequence and notch position), its ringsetting and its starting position.
         :param details:
@@ -24,7 +25,8 @@ class Rotor:
         if ringsetting > 0:
             self.sequence = self.set_ringsetting(self.sequence, ringsetting-1)
 
-    def set_ringsetting(self, wiring, setting):
+    @staticmethod
+    def set_ringsetting(wiring, setting):
         """
         This was tough to crack.
         The function steps through the rotor from the A position to the Z position and notes the offset between
@@ -54,20 +56,19 @@ class Rotor:
         return new_rotor
 
     def get_position(self):
-        self.position = ord(self.indicated) - 65
-        return self.position
-
-    def get_indicated(self):
-        return self.indicated
+        position = ord(self.indicated) - 65
+        return position
 
     def step(self):
         alpha_index = (ord(self.indicated) - 65)
         alpha_index = ((alpha_index + 1) % 26) + 65
         self.indicated = chr(alpha_index)
 
+
 class Reflector:
     def __init__(self, sequence):
         self.sequence = sequence
+
 
 class Plugboard:
     def __init__(self, plugboard):
@@ -76,16 +77,16 @@ class Plugboard:
 
     def test(self):
         letters = []
-        OK = True
+        ok = True
         for plug in self.plugboard:
             if plug[0] in letters or plug[1] in letters:
                 print('Error in plug: ' + plug + '. Letter already used.')
-                OK = False
+                ok = False
             else:
                 letters.append(plug[0])
                 letters.append(plug[1])
-        if OK:
-            print('Plugboard settings OK.')
+        if ok:
+            print('Plugboard settings ok.')
 
     def plug_shuffle(self, char):
         for plug in self.plugboard:
@@ -97,6 +98,7 @@ class Plugboard:
                 char = char
         return char
 
+
 class Machine:
     def __init__(self, reflector, slow, med, fast, plugboard):
         self.reflector = reflector
@@ -105,8 +107,24 @@ class Machine:
         self.fast = fast
         self.plugboard = plugboard
 
+        slow_seq = self.slow.sequence
+        med_seq = self.med.sequence
+        fast_seq = self.fast.sequence
+        refl = self.reflector.sequence
+
+        self.wiring_slow = {}
+        self.wiring_med = {}
+        self.wiring_fast = {}
+        self.wiring_refl = {}
+
+        for i in range(26):  # We know it's 26
+            self.wiring_slow[i] = ord(slow_seq[i]) - 65
+            self.wiring_med[i] = ord(med_seq[i]) - 65
+            self.wiring_fast[i] = ord(fast_seq[i]) - 65
+            self.wiring_refl[i] = ord(refl[i]) - 65
+
     def get_indicated(self):
-        return (self.slow.get_indicated(), self.med.get_indicated(), self.fast.get_indicated())
+        return self.slow.indicated, self.med.indicated, self.fast.indicated
 
     def step(self):
         """
@@ -134,11 +152,11 @@ class Machine:
 
         :return: Nothing is returned.  The machine state is affected.
         """
-        if self.med.get_indicated() in self.med.notch:
+        if self.med.indicated in self.med.notch:
             self.slow.step()
             self.med.step()
             self.fast.step()
-        elif self.fast.get_indicated() in self.fast.notch:
+        elif self.fast.indicated in self.fast.notch:
             self.med.step()
             self.fast.step()
         else:
@@ -149,64 +167,49 @@ class Machine:
         With all three rotors moving against each other it was too difficult to track the relative offsets between the
         rotors.  Instead I imagined a fixed wiring skeleton that the rotors sit in.  Instead of rotating against each
         other they rotate against the (somewhat) imaginary skeleton.  The skeleton actually reflects the fixed parts
-        of the encryption mechanism, being the entry wheel (ETW) and the reflector.  Neither of these rotates so the
+        of the encryption mechanism, being the entry wheel (etw) and the reflector.  Neither of these rotates so the
         skeleton is an extension of these positions.
         This made it easy to use the rotor position to determine the wiring offset relative to the skeleton and adjust
         for each rotor in turn.
         :param letter:
         :return:
         """
-        slow_seq = self.slow.sequence
-        med_seq = self.med.sequence
-        fast_seq = self.fast.sequence
-        refl = self.reflector.sequence
 
         slow_position = self.slow.get_position()
         med_position = self.med.get_position()
         fast_position = self.fast.get_position()
 
-        wiring_slow = {}
-        wiring_med = {}
-        wiring_fast = {}
-        wiring_refl = {}
-
-        for i in range(26):  # We know it's 26
-            wiring_slow[i] = ord(slow_seq[i]) - 65
-            wiring_med[i] = ord(med_seq[i]) - 65
-            wiring_fast[i] = ord(fast_seq[i]) - 65
-            wiring_refl[i] = ord(refl[i]) - 65
-
         # Encode through fast rotor
-        ETW = ord(letter) - 65  # same as skeleton wire
-        in_fast = (ETW + fast_position) % 26
-        out_fast = wiring_fast[in_fast]
+        etw = ord(letter) - 65  # same as skeleton wire
+        in_fast = (etw + fast_position) % 26
+        out_fast = self.wiring_fast[in_fast]
         skel = (out_fast - fast_position)
         if skel < 0:
             skel = 26 + skel
 
         # Encode through medium rotor
         in_med = (skel + med_position) % 26
-        out_med = wiring_med[in_med]
+        out_med = self.wiring_med[in_med]
         skel = (out_med - med_position)
         if skel < 0:
             skel = 26 + skel
 
         # Encode through slow rotor
         in_slow = (skel + slow_position) % 26
-        out_slow = wiring_slow[in_slow]
+        out_slow = self.wiring_slow[in_slow]
         skel = (out_slow - slow_position)
         if skel < 0:
             skel = 26 + skel
 
         # Encode through reflector
-        refl_out = wiring_refl[skel]
+        refl_out = self.wiring_refl[skel]
         skel = refl_out
 
         # Encode back through slow rotor
         in_slow = skel + slow_position
         if in_slow > 25:
             in_slow = in_slow - 26
-        for k, v in wiring_slow.items():
+        for k, v in self.wiring_slow.items():
             if v == in_slow:
                 out_slow = k
         skel = out_slow - slow_position
@@ -217,7 +220,7 @@ class Machine:
         in_med = skel + med_position
         if in_med > 25:
             in_med = in_med - 26
-        for k, v in wiring_med.items():
+        for k, v in self.wiring_med.items():
             if v == in_med:
                 out_med = k
         skel = out_med - med_position
@@ -228,15 +231,15 @@ class Machine:
         in_fast = skel + fast_position
         if in_fast > 25:
             in_fast = in_fast - 26
-        for k, v in wiring_fast.items():
+        for k, v in self.wiring_fast.items():
             if v == in_fast:
                 out_fast = k
         skel = out_fast - fast_position
         if skel < 0:
             skel = 26 + skel
 
-        # Encode back through ETW
-        ETW = skel
-        letter = chr(ETW + 65)
+        # Encode back through etw
+        etw = skel
+        letter = chr(etw + 65)
 
         return letter
