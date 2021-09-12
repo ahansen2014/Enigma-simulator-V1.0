@@ -125,8 +125,8 @@ class Machine:
         B F X
         B F Y
         In this example when the fast rotor shows 'V' it engages the pawl on the middle rotor and on the next step
-        ('V' to 'W') on the slow rotor the middle rotor steps from 'D' to 'E'.  This now engages the pawl for the fast
-        rotor and on the next step the fast rotor advances from 'A' to 'B' but the pawl that pushes the fast rotor
+        ('V' to 'W') on the fast rotor the middle rotor steps from 'D' to 'E'.  This now engages the pawl for the slow
+        rotor and on the next step the slow rotor advances from 'A' to 'B' but the pawl that pushes the slow rotor
         also pushes the middle rotor and so the middle rotor also advances from 'E' to 'F'.
         The algorithm is if the fast rotor notch engages then advance the middle rotor and the fast rotor on the next
         step (actually a double step but you dont see it).  If the middle rotor notch engages then advance all three
